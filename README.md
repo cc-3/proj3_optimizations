@@ -1,1 +1,1 @@
-# proj3_optimizations
+# Project 3: Performance Programming
