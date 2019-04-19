@@ -2,6 +2,10 @@
 autograder/
 data/*
 !data/download
+baseline
+optimized
+!src/baseline
+!src/optimized
 
 # Prerequisites
 *.d
