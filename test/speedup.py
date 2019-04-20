@@ -18,7 +18,10 @@ def speedup(script, runs=3):
 try:
     a = mean('optimized')
     b = mean('baseline')
-    print('approx speedup: %dX' % (round(b / a)))
+    if a > b:
+        print('approx speedup: 0X')
+    else:
+        print('approx speedup: %dX' % (round(b / a)))
 except subprocess.TimeoutExpired:
     print('TIMEOUT')
 except Exception:
