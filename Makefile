@@ -9,6 +9,8 @@ BASELINE_OBJ=$(SRC:%.c=src/baseline/%.o)
 OPTIMIZED_OBJ=$(SRC:%.c=src/optimized/%.o)
 OBJ=$(BASELINE_OBJ) $(OPTIMIZED_OBJ) src/benchmark.o
 
+all: baseline optimized
+
 optimized: src/benchmark.o $(OPTIMIZED_OBJ)
 	$(CC) $(CFLAGS) -o optimized $^ -lm
 
@@ -23,4 +25,4 @@ clean:
 	rm -f baseline
 	rm -f optimized
 
-.PHONY: clean compare
+.PHONY: clean all
