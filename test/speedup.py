@@ -7,7 +7,7 @@ def execute(cmd=[], shell=False, dir='.', input=None, encoding='ascii', timeout=
     return run(cmd, shell=shell, stdout=PIPE, stderr=PIPE, input=input, cwd=dir, timeout=timeout)
 
 
-def speedup(script, runs=3):
+def mean(script, runs=3):
     out = 0
     for i in range(runs):
         task = execute(cmd=['./%s' % script, 'benchmark'], timeout=600)
