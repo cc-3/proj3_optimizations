@@ -137,7 +137,7 @@ double get_accuracy(int *samples, int *predictions, int n) {
 
 
 // Perform the classification (this calls into the functions from network.c)
-void run_classification(int *samples, int n, double ***keep_likelihoods) {
+uint64_t run_classification(int *samples, int n, double ***keep_likelihoods) {
   printf("Making network...\n");
   network_t *net = load_cnn_snapshot();
 
@@ -165,7 +165,12 @@ void run_classification(int *samples, int n, double ***keep_likelihoods) {
   }
 
   printf("Running classification...\n");
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  uint64_t start = 1000000L * tv.tv_sec + tv.tv_usec;
   net_classify(net, input, likelihoods, n);
+  gettimeofday(&tv,NULL);
+  uint64_t end = 1000000L * tv.tv_sec + tv.tv_usec;
 
   int predictions[n];
   for (int i = 0; i < n; i++) {
@@ -202,6 +207,7 @@ void run_classification(int *samples, int n, double ***keep_likelihoods) {
   } else {
     *keep_likelihoods = likelihoods;
   }
+  return end - start;
 }
 
 
@@ -221,15 +227,8 @@ void do_benchmark(int argc, char **argv) {
     samples[i] = i;
   }
 
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  uint64_t start = 1000000L * tv.tv_sec + tv.tv_usec;
-
-  run_classification(samples, num_samples, NULL);
-
-  gettimeofday(&tv,NULL);
-  uint64_t end = 1000000L * tv.tv_sec + tv.tv_usec;
-  printf("%ld microseconds\n", end - start);
+  uint64_t t = run_classification(samples, num_samples, NULL);
+  printf("%ld microseconds\n", t);
 
   free(samples);
 }
