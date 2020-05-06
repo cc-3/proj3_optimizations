@@ -1,67 +1,77 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-{
+import os
+import zipfile
+import argparse
+import requests
+import tempfile
 
-  # REPO NAME
-  REPO='proj3_optimizations'
 
-  title() {
-    printf "   ___       __                        __       \n"
-    printf "  / _ |__ __/ /____  ___  _______ ____/ /__ ____\n"
-    printf " / __ / // / __/ _ \/ _ \\/ __/ _ \\/ _  / -_) __/\n"
-    printf "/_/ |_\\_,_/\\__/\\___/\\_, /_/  \\_,_/\\_,_/\\__/_/\n"
-    printf "                   /___/\n\n"
-    printf "             Machine Structures\n"
-    printf "     Great Ideas in Computer Architecture\n\n"
-    printf "lab: $REPO\n\n"
-  }
+# submit id
+ID = 'proj3_optimizations'
 
-  # verifies if a command exists
-  # @param $1 command to verify
-  has() {
-    type "$1" > /dev/null 2>&1
-  }
+# list of files to submit
+FILES = ['src/optimized/volume.c', 'src/optimized/network.c', 'src/optimized/layers.c']
 
-  # downloads a submit.py script
-  download() {
-    printf "downloading autograder script...\n"
-    local URL="https://raw.githubusercontent.com/cc-3/submit/master/${REPO}/submit.py"
-    if has 'curl'; then
-      curl "$URL" -L -o "submit.py" > /dev/null 2>&1
-      return
-    elif has 'wget'; then
-      wget -O "submit.py" "$URL" > /dev/null 2>&1
-      return
-    fi
-    return 2
-  }
+# zip file name (don't change this)
+ZIP = 'submit.zip'
 
-  # cleans directory
-  clean() {
-    rm -rf autograder
-    mkdir autograder
-  }
+# default submit URL
+URL = 'https://submits.autograders.org'
 
-  # calls submit script
-  autograder() {
-    title
-    clean
-    # also test if curl or wget is available
-    if ! has 'wget' || ! has 'curl'; then
-      printf "you need curl or wget to downdload the autograder script\n"
-      exit 2
-    fi
-    # download script
-    cd autograder
-    download || {
-      printf "an error ocurred while downloading submit script, try agin...\n"
-      cd ..
-      exit 2
-    }
-    # call autograder submit script
-    cd ..
-    python3 ./autograder/submit.py $@
-  }
 
-  autograder $@
-}
+# pretty prints title
+def title():
+    print('   ___       __                        __       ')
+    print('  / _ |__ __/ /____  ___  _______ ____/ /__ _______')
+    print(' / __ / // / __/ _ \\/ _ \\/ __/ _ \\/ _  / -_) __(_-<')
+    print('/_/ |_\\_,_/\\__/\\___/\\_, /_/  \\_,_/\\_,_/\\__/_/ /___/')
+    print('                   /___/\n')
+
+
+# zip lab files
+def zip_lab(tempdir):
+    # create zip file
+    with zipfile.ZipFile(os.path.join(tempdir, ZIP), 'w', zipfile.ZIP_DEFLATED) as zip:
+        # get all files to zip
+        for f in FILES:
+            zip.write(f)
+        zip.close()
+
+
+# submit code
+def submit(args):
+    try:
+        with tempfile.TemporaryDirectory(prefix='autograders') as tempdir:
+            title()
+            print('zipping source files...')
+            zip_lab(tempdir)
+            f = open(os.path.join(tempdir, ZIP), 'rb')
+            print('sending request to server...')
+            r = requests.post(args.url, files={'file': f}, data={'submit_id': ID, 'uid': args.token})
+            f.close()
+            json = r.json()
+            if r.status_code == 200:
+                print('%s submitted' % (', '.join(FILES)))
+            else:
+                print('server return status code: %d (%s)' % (r.status_code, json['message']))
+    except FileNotFoundError:
+        print('incomplete files, expected files: %s' % FILES)
+    except requests.exceptions.ConnectionError:
+        print('connection to the server could not be established, try again...')
+    except requests.exceptions.Timeout:
+        print('request time exceed, try again...')
+    except requests.exceptions.TooManyRedirects:
+        print('server url is invalid :( ...')
+    except requests.exceptions.HTTPError:
+        print('invalid request/response, try again...')
+    except Exception:
+        print('unexpected exception, try again...')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Autograders submit script')
+    parser.add_argument('-t', '--token', type=str, required=True, help='submit token')
+    parser.add_argument('-u', '--url', type=str, default=URL, help='submit url')
+    args = parser.parse_args()
+    submit(args)
